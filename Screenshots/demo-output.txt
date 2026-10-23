@@ -1,0 +1,77 @@
+NumberBindingKit demo: every number in an answer, bound to what the turn returned or marked
+
+── 1. Calculator round trip: every number has a source
+   answer: 15% of 2,340 is **351**.
+   15%           exact                 <- your message: 15%
+   2,340         exact                 <- your message: 2,340
+   351           exact                 <- calculator: 351
+   verdict: allBound  bound 3/3
+
+── 2. A tool result restated wrong
+   answer: Your conversion rate was 6.7% across 48,210 sessions, from 2,748 orders.
+   6.7%          contradicted          <- analytics: 0.057
+   48,210        exact                 <- analytics: 48210
+   2,748         exact                 <- analytics: 2748
+   verdict: contradicted  bound 2/3
+   note: Checked 3 numbers against what this turn returned. Doesn't match: 6.7% (analytics says 0.057).
+
+── 3. Rounding, scale words and units
+   answer: Revenue came in at $1.2 million, churn was 4.3% and p95 latency was 1.48 seconds.
+   $1.2 million  rounded               <- Q3 report: $1,234,567
+   4.3%          rounded               <- Q3 report: 4.32%
+   1.48 seconds  converted             <- Q3 report: 1480 ms
+   verdict: allBound  bound 3/3
+
+── 4. Numbers the model computed from two sources
+   answer: Orders grew 15% quarter on quarter, an increase of 165. At that pace Q4 reaches 1,500.
+   15%           derived(percentChange)<- ops sheet: 1,100 , ops sheet: 1,265
+   165           derived(difference)   <- ops sheet: 1,100 , ops sheet: 1,265
+   1,500         unbound               
+   verdict: unverified  bound 2/3
+   note: Checked 3 numbers against what this turn returned. Nothing this turn returned backs 1,500.
+
+── 5. A clock tool, read back right and wrong
+   answer: It's 2:30 PM in Kolkata on Friday, 23 October 2026.
+   2:30 PM       exact                 <- current_time: 14:30
+   23            exact                 <- current_time: 23
+   2026          exact                 <- current_time: 2026
+   verdict: allBound  bound 3/3
+   answer: It's 3:30 PM in Kolkata on Friday, 23 October 2026.
+   3:30 PM       contradicted          <- current_time: 14:30:05
+   23            exact                 <- current_time: 23
+   2026          exact                 <- current_time: 2026
+   verdict: contradicted  bound 2/3
+   note: Checked 3 numbers against what this turn returned. Doesn't match: 3:30 PM (current_time says 14:30:05).
+
+── 6. Names, markers and counts are not claims
+   answer: 1. Update to iOS 17 and Swift 6. / 2. Re-run step 3 [4] for the 2nd time; it has 2 options.
+   1.            exempt(listMarker)    
+   17            exempt(identifier)    
+   6             exempt(identifier)    
+   2.            exempt(listMarker)    
+   3             exempt(identifier)    
+   4             exempt(citation)      
+   2nd           exempt(ordinal)       
+   2             exempt(smallCount)    
+   verdict: nothingToCheck  bound 0/0
+
+── 7. A number that only repeats an earlier answer
+   answer: The standard card fee is 2.9% plus 30 cents.
+   2.9%          unbound               
+   30            unbound               
+   verdict: unverified  bound 0/2
+   note: Checked 2 numbers against what this turn returned. Nothing this turn returned backs 2.9% and 30.
+   answer: At 2.9% on 1,000 payments of $50 ($50,000), that is $1,450 in percentage fees.
+   2.9%          echoed                <- answer 1: 2.9%
+   1,000         exact                 <- your message: 1,000
+   $50           exact                 <- your message: $50
+   $50,000       derived(product)      <- your message: 1,000 , your message: $50
+   $1,450        unbound               
+   verdict: unverified  bound 3/5
+   note: Checked 5 numbers against what this turn returned. Nothing this turn returned backs $1,450. Only repeats an earlier answer: 2.9%.
+   session: 2 turns, 3/7 bound, 4 unverified
+
+── 8. One answer under three policies
+   strict    0/3  1,200=unbound  $1.23M=unbound  1,400=unbound
+   standard  2/3  1,200=withinBound  $1.23M=rounded  1,400=unbound
+   lenient   3/3  1,200=rounded  $1.23M=rounded  1,400=approximate
